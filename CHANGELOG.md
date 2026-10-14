@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-14
+
 ### Added
 
 - Blink cameras and doorbells in Gladys, through the Blink cloud: sign-in with
@@ -29,4 +31,5 @@ the notes of the version's GitHub Release.
 - Feature names and messages in English, French, German and Spanish;
   documentation in the four languages.
 
-[Unreleased]: https://github.com/guim31/gladys-blink/commits/main
+[Unreleased]: https://github.com/guim31/gladys-blink/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-blink/releases/tag/v1.0.1

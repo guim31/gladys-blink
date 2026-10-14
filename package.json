@@ -1,6 +1,6 @@
 {
   "name": "gladys-blink",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Blink cameras and doorbells for Gladys Assistant: arming, last images, motion and doorbell scene triggers.",
   "type": "module",
