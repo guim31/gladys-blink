@@ -1,101 +1,232 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Blink",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Blink cameras and doorbells: arming, last images, motion and doorbell in your scenes.",
+    "fr": "Caméras et sonnettes Blink : armement, dernières images, mouvement et sonnette dans vos scènes.",
+    "de": "Blink-Kameras und -Klingeln: Scharfschalten, letzte Bilder, Bewegung und Klingel in Szenen.",
+    "es": "Cámaras y timbres Blink: armado, últimas imágenes, movimiento y timbre en sus escenas."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "docker_image": "ghcr.io/guim31/gladys-blink:1.0.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-blink/main/cover.png",
+  "categories": ["security"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
-      "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+      "label": {
+        "en": "Your Blink account",
+        "fr": "Votre compte Blink",
+        "de": "Dein Blink-Konto",
+        "es": "Su cuenta Blink"
       },
-      "links": [
+      "description": {
+        "en": "The e-mail address and password of the Blink app. When you save, Blink sends a verification code by e-mail or SMS: type it with the \"Enter the code\" action below. Not affiliated with Blink or Amazon.",
+        "fr": "L'adresse e-mail et le mot de passe de l'application Blink. À l'enregistrement, Blink envoie un code de vérification par e-mail ou SMS : saisissez-le avec l'action « Saisir le code » ci-dessous. Sans lien avec Blink ni Amazon.",
+        "de": "Die E-Mail-Adresse und das Passwort der Blink-App. Beim Speichern schickt Blink einen Bestätigungscode per E-Mail oder SMS: Gib ihn unten mit der Aktion „Code eingeben“ ein. Nicht mit Blink oder Amazon verbunden.",
+        "es": "La dirección de correo y la contraseña de la aplicación Blink. Al guardar, Blink envía un código de verificación por correo o SMS: introdúzcalo con la acción «Introducir el código» de abajo. Sin relación con Blink ni Amazon."
+      }
+    },
+    {
+      "key": "email",
+      "type": "string",
+      "label": {
+        "en": "E-mail address",
+        "fr": "Adresse e-mail",
+        "de": "E-Mail-Adresse",
+        "es": "Correo electrónico"
+      },
+      "placeholder": {
+        "en": "e.g. me@example.com",
+        "fr": "ex. moi@exemple.fr",
+        "de": "z. B. ich@beispiel.de",
+        "es": "p. ej. yo@ejemplo.es"
+      },
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "Password",
+        "fr": "Mot de passe",
+        "de": "Passwort",
+        "es": "Contraseña"
+      },
+      "description": {
+        "en": "Stored by Gladys, used only to sign in to Blink.",
+        "fr": "Conservé par Gladys, utilisé seulement pour se connecter à Blink.",
+        "de": "Von Gladys gespeichert, nur für die Anmeldung bei Blink verwendet.",
+        "es": "Guardada por Gladys, solo se usa para iniciar sesión en Blink."
+      },
+      "required": true
+    },
+    {
+      "key": "refresh_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often the Blink cloud is read: it is also the delay of motion and doorbell events. Reading does not wake the cameras.",
+        "fr": "Fréquence de lecture du cloud Blink : c’est aussi le délai des événements de mouvement et de sonnette. La lecture ne réveille pas les caméras.",
+        "de": "Wie oft die Blink-Cloud gelesen wird: Das ist auch die Verzögerung der Bewegungs- und Klingelereignisse. Das Lesen weckt die Kameras nicht.",
+        "es": "Frecuencia de lectura de la nube de Blink: es también el retraso de los eventos de movimiento y timbre. La lectura no despierta las cámaras."
+      },
+      "required": false,
+      "default": "60",
+      "options": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
+      "key": "language",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
-      "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
-      ]
-    },
-    {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Language of the feature names of new devices and of the messages of the scene actions.",
+        "fr": "Langue des noms de fonctionnalités des nouveaux appareils et des messages des actions de scène.",
+        "de": "Sprache der Funktionsnamen neuer Geräte und der Meldungen der Szenenaktionen.",
+        "es": "Idioma de los nombres de funciones de los nuevos dispositivos y de los mensajes de las acciones de escena."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
+      "key": "connect",
+      "label": {
+        "en": "Sign in",
+        "fr": "Se connecter",
+        "de": "Anmelden",
+        "es": "Iniciar sesión"
+      },
+      "description": {
+        "en": "Signs in to Blink again with the saved e-mail and password. Blink may send a new verification code.",
+        "fr": "Se reconnecte à Blink avec l’e-mail et le mot de passe enregistrés. Blink peut envoyer un nouveau code de vérification.",
+        "de": "Meldet sich mit der gespeicherten E-Mail und dem Passwort erneut bei Blink an. Blink kann einen neuen Bestätigungscode schicken.",
+        "es": "Vuelve a iniciar sesión en Blink con el correo y la contraseña guardados. Blink puede enviar un nuevo código de verificación."
+      },
+      "timeout_seconds": 60
     },
     {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
+      "key": "verify_code",
+      "label": {
+        "en": "Enter the code",
+        "fr": "Saisir le code",
+        "de": "Code eingeben",
+        "es": "Introducir el código"
+      },
+      "description": {
+        "en": "The verification code Blink sent by e-mail or SMS after the sign-in.",
+        "fr": "Le code de vérification envoyé par Blink par e-mail ou SMS après la connexion.",
+        "de": "Der Bestätigungscode, den Blink nach der Anmeldung per E-Mail oder SMS geschickt hat.",
+        "es": "El código de verificación que Blink ha enviado por correo o SMS tras el inicio de sesión."
+      },
+      "timeout_seconds": 60,
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "key": "code",
+          "type": "string",
+          "label": {
+            "en": "Verification code",
+            "fr": "Code de vérification",
+            "de": "Bestätigungscode",
+            "es": "Código de verificación"
+          },
+          "placeholder": {
+            "en": "e.g. 123456",
+            "fr": "ex. 123456",
+            "de": "z. B. 123456",
+            "es": "p. ej. 123456"
+          },
           "required": true
         }
       ]
@@ -104,74 +235,327 @@
   "scene_triggers": [
     {
       "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "label": {
+        "en": "Blink: motion detected",
+        "fr": "Blink : mouvement détecté",
+        "de": "Blink: Bewegung erkannt",
+        "es": "Blink: movimiento detectado"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A Blink camera recorded a motion clip (seen at the next reading of the Blink cloud).",
+        "fr": "Une caméra Blink a enregistré un clip de mouvement (vu à la lecture suivante du cloud Blink).",
+        "de": "Eine Blink-Kamera hat einen Bewegungsclip aufgenommen (beim nächsten Lesen der Blink-Cloud erkannt).",
+        "es": "Una cámara Blink ha grabado un clip de movimiento (visto en la siguiente lectura de la nube de Blink)."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "label": {
+            "en": "Camera (empty: any)",
+            "fr": "Caméra (vide : n’importe laquelle)",
+            "de": "Kamera (leer: beliebig)",
+            "es": "Cámara (vacío: cualquiera)"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "camera",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Camera name",
+            "fr": "Nom de la caméra",
+            "de": "Name der Kamera",
+            "es": "Nombre de la cámara"
+          }
+        },
+        {
+          "key": "system",
+          "type": "string",
+          "label": {
+            "en": "System name",
+            "fr": "Nom du système",
+            "de": "Name des Systems",
+            "es": "Nombre del sistema"
+          }
+        }
+      ]
+    },
+    {
+      "key": "doorbell_pressed",
+      "label": {
+        "en": "Blink: doorbell pressed",
+        "fr": "Blink : sonnette pressée",
+        "de": "Blink: Klingel gedrückt",
+        "es": "Blink: timbre pulsado"
+      },
+      "description": {
+        "en": "Someone pressed the button of a Blink Video Doorbell (seen at the next reading of the Blink cloud).",
+        "fr": "Quelqu’un a appuyé sur le bouton d’une Blink Video Doorbell (vu à la lecture suivante du cloud Blink).",
+        "de": "Jemand hat die Taste einer Blink Video Doorbell gedrückt (beim nächsten Lesen der Blink-Cloud erkannt).",
+        "es": "Alguien ha pulsado el botón de un Blink Video Doorbell (visto en la siguiente lectura de la nube de Blink)."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Doorbell (empty: any)",
+            "fr": "Sonnette (vide : n’importe laquelle)",
+            "de": "Klingel (leer: beliebig)",
+            "es": "Timbre (vacío: cualquiera)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "camera",
+          "type": "string",
+          "label": {
+            "en": "Doorbell name",
+            "fr": "Nom de la sonnette",
+            "de": "Name der Klingel",
+            "es": "Nombre del timbre"
+          }
+        },
+        {
+          "key": "system",
+          "type": "string",
+          "label": {
+            "en": "System name",
+            "fr": "Nom du système",
+            "de": "Name des Systems",
+            "es": "Nombre del sistema"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "set_arming",
+      "label": {
+        "en": "Blink: arm or disarm",
+        "fr": "Blink : armer ou désarmer",
+        "de": "Blink: scharf oder unscharf schalten",
+        "es": "Blink: armar o desarmar"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Arms or disarms a Blink system, for example to follow the Gladys alarm.",
+        "fr": "Arme ou désarme un système Blink, par exemple pour suivre l’alarme de Gladys.",
+        "de": "Schaltet ein Blink-System scharf oder unscharf, zum Beispiel passend zum Alarm von Gladys.",
+        "es": "Arma o desarma un sistema Blink, por ejemplo para seguir la alarma de Gladys."
+      },
+      "timeout_seconds": 60,
       "fields": [
         {
-          "key": "device",
+          "key": "system",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "label": {
+            "en": "System (or one of its cameras)",
+            "fr": "Système (ou une de ses caméras)",
+            "de": "System (oder eine seiner Kameras)",
+            "es": "Sistema (o una de sus cámaras)"
+          },
+          "required": true
+        },
+        {
+          "key": "mode",
+          "type": "select",
+          "label": {
+            "en": "Command",
+            "fr": "Commande",
+            "de": "Befehl",
+            "es": "Orden"
+          },
+          "required": true,
+          "default": "arm",
+          "options": [
+            {
+              "value": "arm",
+              "label": {
+                "en": "Arm",
+                "fr": "Armer",
+                "de": "Scharf schalten",
+                "es": "Armar"
+              }
+            },
+            {
+              "value": "disarm",
+              "label": {
+                "en": "Disarm",
+                "fr": "Désarmer",
+                "de": "Unscharf schalten",
+                "es": "Desarmar"
+              }
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "key": "armed",
+          "type": "boolean",
+          "label": {
+            "en": "Armed",
+            "fr": "Armé",
+            "de": "Scharf",
+            "es": "Armado"
+          }
+        }
+      ]
+    },
+    {
+      "key": "set_motion_detection",
+      "label": {
+        "en": "Blink: camera motion detection",
+        "fr": "Blink : détection de mouvement",
+        "de": "Blink: Bewegungserkennung",
+        "es": "Blink: detección de movimiento"
+      },
+      "description": {
+        "en": "Turns the motion detection of one camera on or off (it records only when its system is armed).",
+        "fr": "Active ou désactive la détection de mouvement d’une caméra (elle n’enregistre que si son système est armé).",
+        "de": "Schaltet die Bewegungserkennung einer Kamera an oder aus (sie nimmt nur auf, wenn ihr System scharf ist).",
+        "es": "Activa o desactiva la detección de movimiento de una cámara (solo graba si su sistema está armado)."
+      },
+      "timeout_seconds": 60,
+      "fields": [
+        {
+          "key": "camera",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Camera",
+            "fr": "Caméra",
+            "de": "Kamera",
+            "es": "Cámara"
+          },
+          "required": true
+        },
+        {
+          "key": "state",
+          "type": "select",
+          "label": {
+            "en": "Motion detection",
+            "fr": "Détection de mouvement",
+            "de": "Bewegungserkennung",
+            "es": "Detección de movimiento"
+          },
+          "required": true,
+          "default": "on",
+          "options": [
+            {
+              "value": "on",
+              "label": {
+                "en": "On",
+                "fr": "Activée",
+                "de": "An",
+                "es": "Activada"
+              }
+            },
+            {
+              "value": "off",
+              "label": {
+                "en": "Off",
+                "fr": "Désactivée",
+                "de": "Aus",
+                "es": "Desactivada"
+              }
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "key": "enabled",
+          "type": "boolean",
+          "label": {
+            "en": "Detection on",
+            "fr": "Détection activée",
+            "de": "Erkennung an",
+            "es": "Detección activada"
+          }
+        }
+      ]
+    },
+    {
+      "key": "take_snapshot",
+      "label": {
+        "en": "Blink: take a new image",
+        "fr": "Blink : prendre une nouvelle image",
+        "de": "Blink: neues Bild aufnehmen",
+        "es": "Blink: tomar una nueva imagen"
+      },
+      "description": {
+        "en": "Wakes the camera for a new image (costs battery), published on its device for the \"send a camera image\" action.",
+        "fr": "Réveille la caméra pour une nouvelle image (consomme de la batterie), publiée sur son appareil pour l’action « envoyer une image ».",
+        "de": "Weckt die Kamera für ein neues Bild (kostet Batterie), auf ihrem Gerät für die Aktion „Kamerabild senden“ veröffentlicht.",
+        "es": "Despierta la cámara para una nueva imagen (gasta batería), publicada en su dispositivo para la acción «enviar una imagen»."
+      },
+      "timeout_seconds": 90,
+      "fields": [
+        {
+          "key": "camera",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Camera",
+            "fr": "Caméra",
+            "de": "Kamera",
+            "es": "Cámara"
+          },
           "required": true
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "captured",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Image taken",
+            "fr": "Image prise",
+            "de": "Bild aufgenommen",
+            "es": "Imagen tomada"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "blink",
+      "label": {
+        "en": "Blink",
+        "fr": "Blink",
+        "de": "Blink",
+        "es": "Blink"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Arm or disarm, the last image of each camera, and a new image on demand.",
+        "fr": "Armer ou désarmer, la dernière image de chaque caméra, une nouvelle image à la demande.",
+        "de": "Scharf oder unscharf schalten, das letzte Bild jeder Kamera, ein neues Bild auf Abruf.",
+        "es": "Armar o desarmar, la última imagen de cada cámara y una nueva imagen a petición."
+      },
+      "icon": "video",
+      "action_timeout_seconds": 90,
+      "settings": [
+        {
+          "key": "system",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "System (empty: the only one)",
+            "fr": "Système (vide : le seul)",
+            "de": "System (leer: das einzige)",
+            "es": "Sistema (vacío: el único)"
+          }
+        }
+      ]
     }
   ]
 }

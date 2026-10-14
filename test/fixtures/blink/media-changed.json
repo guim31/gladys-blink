@@ -1,0 +1,27 @@
+{
+  "limit": 500,
+  "purge_id": 2989164295,
+  "refresh_count": 0,
+  "media": [
+    {
+      "id": 7000001,
+      "created_at": "2022-03-12T17:20:01+00:00",
+      "updated_at": "2022-03-12T21:51:35+00:00",
+      "deleted": false,
+      "device": "catalina",
+      "device_id": 4000001,
+      "device_name": "Alpha",
+      "network_id": 2000001,
+      "network_name": "82 Downing",
+      "type": "video",
+      "source": "snapshot",
+      "partial": false,
+      "watched": false,
+      "thumbnail": "/api/v3/media/accounts/1000001/networks/2000001/catalina/4000001/snapshot/3032353907.jpg?ext=",
+      "media": "/api/v3/media/accounts/1000001/networks/2000001/catalina/4000001/snapshot/3032353907.mp4",
+      "metadata": null,
+      "additional_devices": [],
+      "time_zone": "America/Toronto"
+    }
+  ]
+}

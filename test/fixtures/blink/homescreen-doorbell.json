@@ -1,0 +1,219 @@
+{
+  "account": {
+    "id": 1000001,
+    "email_verified": true,
+    "email_verification_required": true,
+    "amazon_account_linked": false
+  },
+  "networks": [
+    {
+      "id": 2000001,
+      "name": "82 Downing",
+      "created_at": "2016-02-13T19:15:54+00:00",
+      "updated_at": "2022-03-06T18:05:40+00:00",
+      "time_zone": "America/Toronto",
+      "dst": true,
+      "armed": true,
+      "lv_save": false
+    },
+    {
+      "id": 2000002,
+      "name": "82b Downing",
+      "created_at": "2016-02-13T19:15:54+00:00",
+      "updated_at": "2022-03-06T18:05:40+00:00",
+      "time_zone": "America/Toronto",
+      "dst": true,
+      "armed": true,
+      "lv_save": false
+    },
+    {
+      "id": 2000003,
+      "name": "82b Downing",
+      "created_at": "2017-05-05T23:23:49+00:00",
+      "updated_at": "2020-11-10T15:12:01+00:00",
+      "time_zone": "America/Toronto",
+      "dst": true,
+      "armed": false,
+      "lv_save": false
+    }
+  ],
+  "sync_modules": [
+    {
+      "id": 3000001,
+      "name": "Blink SM",
+      "type": "sm1",
+      "subtype": "none",
+      "network_id": 2000001,
+      "created_at": "2016-02-13T19:17:57+00:00",
+      "updated_at": "2022-03-13T15:26:12+00:00",
+      "onboarded": true,
+      "status": "online",
+      "serial": "A0000001",
+      "fw_version": "4.4.8",
+      "last_hb": "2022-03-13T20:09:20+00:00",
+      "wifi_strength": 3,
+      "enable_temp_alerts": true,
+      "local_storage_enabled": false,
+      "local_storage_compatible": true,
+      "local_storage_status": "unavailable",
+      "revision": "00"
+    },
+    {
+      "id": 3000002,
+      "name": "My Blink Sync Module",
+      "type": "sm2",
+      "subtype": "vinnie",
+      "network_id": 2000002,
+      "created_at": "2022-02-16T00:08:56+00:00",
+      "updated_at": "2022-03-13T20:03:20+00:00",
+      "onboarded": true,
+      "status": "online",
+      "serial": "A0000002",
+      "fw_version": "4.4.8",
+      "last_hb": "2022-03-13T20:09:25+00:00",
+      "wifi_strength": 1,
+      "enable_temp_alerts": true,
+      "local_storage_enabled": false,
+      "local_storage_compatible": true,
+      "local_storage_status": "unavailable",
+      "revision": "00"
+    }
+  ],
+  "cameras": [
+    {
+      "id": 4000001,
+      "name": "Alpha",
+      "type": "white",
+      "network_id": 2000001,
+      "created_at": "2016-02-13T19:21:09+00:00",
+      "updated_at": "2022-03-13T19:57:49+00:00",
+      "serial": "B0000001",
+      "fw_version": "2.151",
+      "enabled": true,
+      "thumbnail": "/media/production/account/1000001/network/2000001/camera/4000001/clip_8mpxqvts_2020_01_01__01_01AM",
+      "status": "done",
+      "battery": "low",
+      "usage_rate": false,
+      "issues": [],
+      "signals": {
+        "lfr": 5,
+        "wifi": 1,
+        "temp": 62,
+        "battery": 2
+      },
+      "local_storage_enabled": false,
+      "local_storage_compatible": false,
+      "snooze": false,
+      "snooze_time_remaining": null,
+      "revision": null
+    },
+    {
+      "id": 4000002,
+      "name": "Beta",
+      "type": "catalina",
+      "network_id": 2000002,
+      "created_at": "2022-02-16T00:13:43+00:00",
+      "updated_at": "2022-03-13T18:57:49+00:00",
+      "serial": "B0000002",
+      "fw_version": "10.53",
+      "enabled": true,
+      "thumbnail": "/api/v3/media/production/account/1000001/network/2000001/catalina/4000002/thumbnail/thumbnail.jpg?ts=1648473188&ext=",
+      "status": "done",
+      "battery": "ok",
+      "usage_rate": false,
+      "issues": [],
+      "signals": {
+        "lfr": 5,
+        "wifi": 5,
+        "temp": 23,
+        "battery": 3
+      },
+      "local_storage_enabled": false,
+      "local_storage_compatible": true,
+      "snooze": false,
+      "snooze_time_remaining": null,
+      "revision": "00"
+    }
+  ],
+  "sirens": [],
+  "chimes": [],
+  "video_stats": {
+    "storage": 2,
+    "auto_delete_days": 60,
+    "auto_delete_day_options": [3, 7, 14, 30, 60]
+  },
+  "doorbell_buttons": [],
+  "owls": [
+    {
+      "id": 5000001,
+      "name": "Gamma",
+      "type": "owl",
+      "network_id": 2000003,
+      "created_at": "2020-04-17T21:42:56+00:00",
+      "updated_at": "2020-11-02T19:50:09+00:00",
+      "onboarded": true,
+      "serial": "B0000003",
+      "fw_version": "9.63",
+      "enabled": true,
+      "thumbnail": "/media/production/account/1000001/network/2000003/owl/5000001/thumbnail/fw_9.63__IokPTqZ2_2020_10_28__11_43AM",
+      "status": "online",
+      "local_storage_enabled": false,
+      "local_storage_compatible": false
+    }
+  ],
+  "doorbells": [
+    {
+      "id": 6000001,
+      "name": "Front door",
+      "type": "lotus",
+      "network_id": 2000001,
+      "created_at": "2024-05-01T10:00:00+00:00",
+      "updated_at": "2026-10-14T07:59:00+00:00",
+      "onboarded": true,
+      "serial": "G0000001",
+      "fw_version": "13.16",
+      "enabled": true,
+      "thumbnail": "/api/v3/media/accounts/1000001/networks/2000001/lotus/6000001/thumbnail/thumbnail.jpg?ts=1760428740&ext=",
+      "status": "done",
+      "battery": "ok",
+      "signals": {
+        "lfr": 5,
+        "wifi": 4,
+        "battery": 3
+      }
+    }
+  ],
+  "app_updates": {
+    "message": "OK",
+    "code": 103,
+    "update_available": false,
+    "update_required": false
+  },
+  "device_limits": {
+    "camera": 10,
+    "chime": 5,
+    "doorbell": 10,
+    "doorbell_button": 2,
+    "owl": 10,
+    "siren": 5,
+    "total_devices": 20
+  },
+  "whats_new": {
+    "updated_at": 20210204,
+    "url": "https://updates.blinkforhome.com/"
+  },
+  "subscriptions": {
+    "updated_at": "2022-03-01T01:50:27+00:00"
+  },
+  "entitlements": {
+    "updated_at": "2022-03-01T01:50:27+00:00"
+  },
+  "tiv_lock_enable": true,
+  "tiv_lock_status": {
+    "locked": true
+  },
+  "accessories": {
+    "storm": [],
+    "rosie": []
+  }
+}

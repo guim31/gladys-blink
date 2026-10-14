@@ -1,8 +1,8 @@
 {
-  "name": "gladys-integration-template-js",
+  "name": "gladys-blink",
   "version": "1.0.0",
   "private": true,
-  "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
+  "description": "Blink cameras and doorbells for Gladys Assistant: arming, last images, motion and doorbell scene triggers.",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -16,7 +16,8 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@gladysassistant/integration-sdk": "^0.15.0"
+    "@gladysassistant/integration-sdk": "^0.15.0",
+    "jpeg-js": "^0.4.4"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

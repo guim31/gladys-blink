@@ -9,7 +9,8 @@ A Gladys Assistant **external integration**: a Node.js service (Node 22+, ESM,
 no build step) that runs in its own sandboxed Docker container and talks to
 Gladys through
 [`@gladysassistant/integration-sdk`](https://github.com/GladysAssistant/integration-sdk-js),
-its only runtime dependency. It started from the official JavaScript template.
+plus `jpeg-js` (pure JavaScript, to shrink an oversized thumbnail). It started
+from the official JavaScript template.
 
 ## Commands
 
@@ -32,15 +33,24 @@ pushing.
 
 ```
 index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+src/app.js                        registers every SDK handler on the hub (tests drive the same wiring)
+src/hub.js                        session lifecycle, refresh timer, states, scene events, images, commands
+src/blink/auth.js                 OAuth v2 sign-in (PKCE, CSRF, verification code), token refresh, tier
+src/blink/client.js               REST client: homescreen, media/changed, arm, motion, snapshot, commands
+src/blink/model.js                homescreen and clips → systems, cameras, motion/ring events
+src/blink/http.js, errors.js      fetch seam + cookie jar; error kinds
+src/devices.js                    Gladys devices and states (external ids, feature names in 4 languages)
+src/images.js                     JPEG within the Gladys limits (jpeg-js, only when too large)
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/widgets.js                    the `blink` dashboard widget (manifest `widgets`)
+src/texts.js                      every message sent to Gladys, in 4 languages
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/store.js, src/issues.js       /data persistence (session, mode 0600); deduplicated problem logs
+scripts/probe.mjs                 read-only probe of the real Blink cloud (needs the network)
+gladys-assistant-integration.json manifest: name, config_schema, actions, triggers, widget...
+docs/{en,fr,de,es}.md             user documentation, same sections in the four languages
+test/                             node --test, SDK fake Gladys + fake Blink cloud (test/helpers/)
+test/fixtures/blink/              real Blink answers (homebridge-blink-for-home, MIT), see its README
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +80,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in four languages (English, French, German,
+  Spanish): action messages, manifest texts, feature names, widget texts, and
+  `docs/en.md` / `fr.md` / `de.md` / `es.md`, kept in sync (same sections).
+  `test/i18n.test.js` enforces it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +245,47 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Intégration Blink (14/10/2026)
+
+**API.** Cloud Blink seul (`transports: ["cloud"]`), protocole de blinkpy 0.25 (MIT) :
+
+- Connexion OAuth 2.0 + PKCE sur `api.oauth.blink.com` (`src/blink/auth.js`), étapes liées par des **cookies** :
+  `fetch` n’a pas de jar, `src/blink/http.js` en fournit un, et `redirect: 'manual'` pour lire le `Location` qui
+  porte le code d’autorisation. Code de vérification : réponse 412, ou 202 avec `tsv_*`, au POST du mot de passe ;
+  vérification par `POST /oauth/v2/2fa/verify` (201 `auth-completed`). Le `hardware_id` doit être un **UUID**
+  (406 sinon) : gardé dans `/data`, Blink ne redemande pas de code au même client.
+- Région par `GET rest-prod…/api/v1/users/tier_info` (`tier`, `account_id`), puis `https://rest-<tier>.immedia-semi.com`.
+- Lecture : `GET /api/v3/accounts/{a}/homescreen` (réseaux armés, sync modules, `cameras`, `owls` = Mini,
+  `doorbells`) + `GET /api/v1/accounts/{a}/media/changed?since=` (clips). Deux GET par cycle, aucun réveil de
+  caméra. **Ne pas** reprendre `POST /network/{id}/update` de blinkpy (son `refresh`) : c’est une commande au
+  Sync Module.
+- Commandes : `POST …/networks/{n}/state/arm|disarm`, détection par caméra (`/network/{n}/camera/{id}/enable`,
+  Mini : `POST …/owls/{id}/config {"enabled":…}`, sonnette : `…/doorbells/{id}/enable`), capture
+  (`…/thumbnail`), puis `GET /network/{n}/command/{id}` jusqu’à `complete` (`status_code` 908 = OK).
+- Températures en **°F** (`signals.temp`) ; batterie `ok`/`low` seulement ; Wi-Fi en barres 0–5.
+- Vitesse : 30 s minimum (blinkpy), 1 min par défaut, HA lit toutes les 5 min ; 429 → intervalle doublé.
+
+**Pièges découverts.**
+
+- **La limite de 150 Ko du canal caméra porte sur la chaîne `image/jpg;base64,…` entière** (le SDK mesure la
+  chaîne) : ~112 Ko de JPEG, pas 150. Le widget, lui, borne les octets décodés (300 Ko).
+- **Les `label` des champs d’un formulaire de bouton de widget doivent être des objets multilingues**, y compris
+  ceux des `options` : une chaîne fait jeter le bouton (`validateWidgetContent` le signale).
+- Une `caption` de widget est tronquée à **80 caractères**.
+- Le heartbeat de `publishChangedStates` est daté par `Date.now()` du SDK, pas par l’horloge injectée : un test
+  de heartbeat doit mocker `Date`.
+- Les acks d’action renvoient `{ data: { message } }`, ceux d’action de scène `{ data: { outputs } }` dans le faux
+  Gladys.
+- **Armement et détection sont en lecture seule (`input/binary`)** : Gladys Plus expose à Google Home et Alexa
+  tout `switch/binary` et `light/binary` (`google-actions/lib/traits/googleActions.onOff.trait.js`, sans regarder
+  `read_only`), et « éteins tout » désarmerait les caméras. `lock/binary` n’est pas exposé mais s’affiche
+  « Verrouillée ». Commande par le widget et les actions de scène seulement (règle « sécurité » de Guilhem).
+- `doorbell/ring` : le front affiche l’heure du **dernier état reçu** comme « dernier coup de sonnette » ; pas de
+  heartbeat sur cette fonctionnalité (impulsion 1 puis 0 à la lecture suivante, par `publishStates`).
+- Température d’une caméra : `device-temperature-sensor`, pas `temperature-sensor`, qui entre dans la moyenne de
+  la pièce (caméra souvent dehors).
+- La source exacte d’un appui sonnette dans `media/changed` n’est publiée nulle part (`pir` = mouvement est
+  documenté) : `src/blink/model.js` reconnaît `button|press|ring|ding|bell`. À confirmer avec `scripts/probe.mjs`.
+- Les réponses de Blink ne sont pas dans les tests de blinkpy (fragments) : les vraies sont dans
+  `homebridge-blink-for-home/src/blink-api.sample.js` (MIT).
