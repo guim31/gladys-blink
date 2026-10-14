@@ -268,6 +268,10 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 
 **Pièges découverts.**
 
+- **`GET /oauth/v2/authorize?…` répond 302** vers `/oauth/v2/signin` sur le vrai cloud (sonde du 14/10/2026,
+  cookies `csrf-protection`, `blink-session`…), alors que les tests de blinkpy simulent un 200 : accepter les
+  deux, garder les cookies de la 302, refuser une redirection ailleurs. Le faux cloud répond 302 comme le vrai.
+
 - **La limite de 150 Ko du canal caméra porte sur la chaîne `image/jpg;base64,…` entière** (le SDK mesure la
   chaîne) : ~112 Ko de JPEG, pas 150. Le widget, lui, borne les octets décodés (300 Ko).
 - **Les `label` des champs d’un formulaire de bouton de widget doivent être des objets multilingues**, y compris

@@ -77,6 +77,19 @@ export function extractCsrfToken(html) {
 
 const isRedirect = (status) => [301, 302, 303, 307, 308].includes(status);
 
+/** Is `response` a redirect to `path` of the Blink sign-in server? */
+function redirectsTo(response, path) {
+  if (!isRedirect(response.status)) {
+    return false;
+  }
+  try {
+    const target = new URL(response.headers.location ?? '', OAUTH_BASE_URL);
+    return target.origin === OAUTH_BASE_URL && target.pathname === path;
+  } catch {
+    return false;
+  }
+}
+
 /** The token answer of Blink, as stored under /data. */
 export function parseTokens(body, now) {
   if (!body || typeof body.access_token !== 'string' || typeof body.refresh_token !== 'string') {
@@ -166,7 +179,10 @@ export class BlinkAuth {
       })}`,
       { headers: page },
     );
-    if (authorize.status !== 200) {
+    // The real cloud answers 302 to the sign-in page (seen on 14/10/2026 by
+    // scripts/probe.mjs), blinkpy's tests a 200: both open the session, its
+    // cookies are already in the jar. A redirect anywhere else is a new flow.
+    if (authorize.status !== 200 && !redirectsTo(authorize, '/oauth/v2/signin')) {
       throw new BlinkError(
         ERROR_KINDS.LOGIN_FLOW,
         `authorization request answered HTTP ${authorize.status}`,

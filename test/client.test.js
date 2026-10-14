@@ -293,3 +293,28 @@ test('thumbnail paths never lead outside the Blink cloud', () => {
     assert.equal(thumbnailPath(bad, ids), null, String(bad));
   }
 });
+
+test('the first step may redirect to the sign-in page (the real cloud) or answer 200', async () => {
+  for (const [status, location] of [
+    [302, '/oauth/v2/signin'],
+    [302, 'https://api.oauth.blink.com/oauth/v2/signin'],
+    [200, undefined],
+  ]) {
+    const { blink, auth } = setup({ requireCode: false });
+    blink.authorizeStatus = status;
+    blink.authorizeLocation = location;
+    const result = await auth.login({ email: EMAIL, password: PASSWORD, hardwareId: HARDWARE_ID });
+    assert.ok(result.tokens, `${status} ${location}`);
+  }
+});
+
+test('a first step redirecting anywhere else is a changed flow', async () => {
+  for (const location of ['/oauth/v2/other', 'https://evil.example.com/oauth/v2/signin']) {
+    const { blink, auth } = setup();
+    blink.authorizeLocation = location;
+    await rejectsWith(
+      auth.login({ email: EMAIL, password: PASSWORD, hardwareId: HARDWARE_ID }),
+      ERROR_KINDS.LOGIN_FLOW,
+    );
+  }
+});

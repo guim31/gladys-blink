@@ -64,6 +64,9 @@ export class FakeBlink {
     this.thumbnail = makeJpeg();
     this.thumbnailRequests = 0;
     this.tokenLifetimeS = 3600;
+    // First answer of the sign-in: 302 to the sign-in page, like the real cloud.
+    this.authorizeStatus = 302;
+    this.authorizeLocation = '/oauth/v2/signin';
   }
 
   /** The `request` seam of the integration. */
@@ -123,9 +126,11 @@ export class FakeBlink {
           csrf: token(),
           signedIn: false,
         });
-        return this.reply(200, '<html>authorize</html>', {
-          cookies: [`sid=${sid}; Path=/; HttpOnly`],
-        });
+        // The real cloud redirects to the sign-in page (scripts/probe.mjs, 14/10/2026).
+        const cookies = [`sid=${sid}; Path=/; HttpOnly`];
+        return this.authorizeStatus === 200
+          ? this.reply(200, '<html>authorize</html>', { cookies })
+          : this.reply(302, '', { headers: { location: this.authorizeLocation }, cookies });
       }
       const session = this.session(options);
       if (!session?.signedIn) {
