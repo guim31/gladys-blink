@@ -1,77 +1,166 @@
+// -----------------------------------------------------------------------------
+// The `blink` dashboard widget: rendered exactly as sent (the SDK's
+// validateWidgetContent: vocabulary and budget), its references exist (the
+// devices of the discovery, the image keys it serves), and the current
+// arming state is told by the icon, never by the invisible `primary` style.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { validateWidgetContent, validateWidgetImage } from '@gladysassistant/integration-sdk';
+import { fixture } from './helpers/fakeBlink.js';
+import { FakeBlink, createClock, createWorld, systemId } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+async function world(t, { homescreen = 'homescreen-doorbell.json', ...options } = {}) {
+  const clock = createClock();
+  const blink = new FakeBlink({ now: clock.now, homescreen: fixture(homescreen) });
+  const w = await createWorld({ clock, blink, ...options });
+  t.after(() => w.app.stop());
+  return w;
+}
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
+async function content(w, settings = {}, language = 'en') {
+  const answer = await w.fake.widgetGet('blink', { settings, language, units: 'metric' });
+  assert.equal(answer.success, true, answer.error);
+  return answer.data.content;
+}
 
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
+const ofType = (c, type) => c.components.filter((component) => component.type === type);
 
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
-    );
-  } finally {
-    simulateLanSession(true);
+test('every content is rendered exactly as sent, in every language', async (t) => {
+  const w = await world(t);
+  const system = systemId(w.gladys, 2000001);
+  for (const language of ['en', 'fr', 'de', 'es']) {
+    for (const settings of [{}, { system }]) {
+      assert.deepEqual(validateWidgetContent(await content(w, settings, language)), [], language);
+    }
   }
 });
 
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
+test('with one system chosen: its cameras, its state, Arm, Disarm and New image…', async (t) => {
+  const w = await world(t);
+  const system = systemId(w.gladys, 2000001);
+  const c = await content(w, { system });
+  const [grid] = ofType(c, 'card-list');
+  assert.deepEqual(
+    grid.items.map((item) => item.title),
+    ['Alpha', 'Front door'],
   );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
+  assert.equal(grid.items[0].subtitle, 'Low battery');
+  assert.deepEqual(ofType(c, 'status')[0].items, [
+    { label: '82 Downing', icon: 'shield', value: 'Armed', color: 'success' },
+  ]);
+  const buttons = ofType(c, 'button');
+  assert.deepEqual(
+    buttons.map((b) => [b.label, b.icon, b.action.key]),
+    [
+      ['Arm', 'check-circle', 'arm'],
+      ['Disarm', 'shield-off', 'disarm'],
+      ['New image…', 'camera', 'snapshot'],
+    ],
+  );
+  assert.equal(buttons[1].action.confirm, true, 'disarming asks first');
+  assert.ok(
+    buttons.every((b) => b.style !== 'primary'),
+    'primary is invisible in dark mode (#3153)',
+  );
+  assert.deepEqual(buttons[0].action.params, { system });
 });
 
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
+test('a camera chosen in the settings drives its own system', async (t) => {
+  const w = await world(t);
+  const gamma = w.gladys.externalIds('mini', '5000001').device;
+  const c = await content(w, { system: gamma });
+  assert.equal(ofType(c, 'status')[0].items[0].value, 'Disarmed');
+  assert.equal(ofType(c, 'button')[1].icon, 'check-circle');
 });
 
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
+test('several systems and none chosen: every system shown, no arming button', async (t) => {
+  const w = await world(t);
+  const c = await content(w);
+  assert.match(ofType(c, 'text')[0].text, /Several systems/);
+  assert.equal(ofType(c, 'status')[0].items.length, 3);
+  assert.deepEqual(
+    ofType(c, 'button').map((b) => b.action.key),
+    ['snapshot'],
   );
 });
 
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('the references of the content exist: devices of the discovery, images it serves', async (t) => {
+  const w = await world(t);
+  const discovered = new Set(w.fake.discoveredDevices.map((device) => device.external_id));
+  const system = systemId(w.gladys, 2000001);
+  const c = await content(w, { system });
+  assert.ok(discovered.has(ofType(c, 'button')[0].action.params.system));
+  const form = ofType(c, 'button')[2].action.fields[0];
+  for (const option of form.options) {
+    assert.ok(discovered.has(option.value), option.value);
+  }
+  assert.ok(discovered.has(form.default));
+  for (const item of ofType(c, 'card-list')[0].items) {
+    assert.match(item.image, /^[a-z0-9][a-z0-9-]{0,63}$/);
+    const image = await w.fake.widgetGetImage(item.image);
+    assert.equal(image.success, true);
+    assert.deepEqual(validateWidgetImage(image.data.image), []);
+  }
+  const unknown = await w.fake.widgetGetImage('cam-0000000000000000');
+  assert.equal(unknown.success, false);
+});
+
+test('an image key changes when the image changes (the core caches by key)', async (t) => {
+  const w = await world(t);
+  const system = systemId(w.gladys, 2000001);
+  const before = ofType(await content(w, { system }), 'card-list')[0].items[0].image;
+  w.clock.advance(60_000);
+  await w.fake.sceneAction('take_snapshot', {
+    camera: w.gladys.externalIds('camera', '4000001').device,
+  });
+  const after = ofType(await content(w, { system }), 'card-list')[0].items[0].image;
+  assert.notEqual(after, before);
+});
+
+test('a motion, an offline camera and a disabled detection show as badges', async (t) => {
+  const w = await world(t);
+  w.blink.homescreen.cameras[1].status = 'offline';
+  w.blink.homescreen.owls[0].enabled = false;
+  w.blink.media.push({
+    id: 1,
+    created_at: new Date(w.clock.now()).toISOString(),
+    device_id: 6000001,
+    device: 'lotus',
+    network_id: 2000001,
+    source: 'pir',
+  });
+  w.clock.advance(60_000);
+  await w.hub.refresh();
+  const items = ofType(await content(w), 'card-list')[0].items;
+  assert.deepEqual(
+    items.map((item) => [item.title, item.badge?.text ?? null]),
+    [
+      ['Alpha', null],
+      ['Beta', 'Offline'],
+      ['Gamma', 'Detection off'],
+      ['Front door', 'Motion'],
+    ],
+  );
+});
+
+test('signed out, waiting for the code, or an unknown device: a plain message', async (t) => {
+  const w = await world(t, { signIn: false });
+  const waiting = await content(w, {}, 'fr');
+  assert.match(waiting.components[0].text, /Saisir le code/);
+  assert.deepEqual(validateWidgetContent(waiting), []);
+
+  const signed = await world(t);
+  const unknown = await content(signed, { system: 'ext:test-integration:system:9' });
+  assert.match(unknown.components[0].text, /unknown/);
+});
+
+test('a refused command answers with a toast in every language', async (t) => {
+  const w = await world(t);
+  w.blink.online = false;
+  const system = systemId(w.gladys, 2000001);
+  const answer = await w.fake.widgetAction('blink', 'disarm', { system }, { settings: {} });
+  assert.equal(answer.success, false);
+  assert.match(answer.error, /Blink did not apply the command: the Blink cloud does not answer/);
 });

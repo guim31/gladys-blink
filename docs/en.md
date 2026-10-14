@@ -1,61 +1,132 @@
-# Demo Devices Template
+# Blink
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+This integration brings your **Blink** cameras and doorbells (Blink Outdoor 4, Blink Mini, Blink Video
+Doorbell, with or without a Sync Module) into Gladys, through the Blink cloud: arming of each system, the last
+image of each camera, motion and doorbell events in your scenes, and a dashboard widget.
 
-## What you get
+Not affiliated with Blink or Amazon. Blink is a trademark of Amazon.com, Inc. or its affiliates.
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+> **Developed without the hardware: feedback welcome.** It follows the protocol of the blinkpy library (used by
+> Home Assistant) and real answers of the Blink cloud published by other projects, but it was never run against
+> a real Blink account. Tell us what works and what does not on
+> [GitHub](https://github.com/guim31/gladys-blink/issues).
+
+## Prerequisites
+
+- Gladys 5.2.0 or later.
+- A Blink account (the e-mail address and password of the Blink app) with at least one system.
+- Internet access for Gladys: everything goes through the Blink cloud, there is no local access.
+- Access to the mailbox or the phone of the account: Blink sends a verification code at the first sign-in.
 
 ## Configuration
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+### Signing in and the verification code
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+1. Fill in **E-mail address** and **Password**, then save.
+2. Blink sends a verification code by e-mail or SMS: open the **Enter the code** action, type the code and run it.
+   The message under the button tells how many systems and cameras were found.
+3. Add the devices from the **Discovery** tab.
 
-## Actions
+The code is asked once: the integration keeps its session under `/data` and refreshes it by itself. If the
+session is refused one day (password changed, client removed in the Blink app), it signs in again by itself, at
+most once an hour; when Blink asks for a new code, the Configuration screen says so. The **Sign in** action signs
+in again on demand.
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+### Refresh interval
 
-## Scenes
+How often the Blink cloud is read: 30 seconds, 1 minute (default), 2 minutes or 5 minutes. A reading is two
+requests to the Blink cloud whatever the number of cameras, and **it never wakes the cameras**: their battery is
+not affected. The interval is also the delay of the motion and doorbell events. Blink bans clients that poll too
+often: 30 seconds is the floor recommended by blinkpy, and after a "too many requests" answer the interval is
+doubled for a while. The **Language of the names** chooses the names of the features of new devices.
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+## Devices
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+### System
 
-## Dashboard
+One device per Blink system (Sync Module, or a Mini or a doorbell on its own):
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+- **Armed**: on when the system is armed. Read-only on the device: arm and disarm from the widget or a scene (see
+  below). This is on purpose: an on/off switch would be exposed to Google Home and Alexa through Gladys Plus, and
+  "turn everything off" would disarm your cameras.
+- **Sync Module online**: whether the Sync Module answers Blink (only for a system with a Sync Module).
+
+### Camera, Mini and doorbell
+
+One device per camera:
+
+- **Image**: the last thumbnail of the camera, sent to Gladys each time Blink has a new one. When Gladys asks for
+  an image (dashboard, chat), it gets this last thumbnail: **the integration never takes a picture by itself**,
+  because each capture wakes the camera and costs battery. A new image is taken only when you ask (widget or
+  scene).
+- **Motion detected**: on for two minutes after a motion clip, off otherwise.
+- **Motion detection on**: whether the camera records motion when its system is armed.
+- **Temperature** (battery cameras): the sensor of the camera, in °C, often outdoors: kept out of the room
+  average.
+- **Low battery** (battery cameras and doorbell): Blink only says "OK" or "low", not a percentage.
+- **Wi-Fi signal** (battery cameras and doorbell): 0 to 5 bars.
+- **Doorbell** (Video Doorbell): on for one reading when the button is pressed; the dashboard shows the time of
+  the last ring.
+
+## Widget
+
+The **Blink** widget shows the last image of each camera (with a badge for a motion, an offline camera or a
+disabled detection), the state of the system, and three buttons:
+
+- **Arm** and **Disarm** (disarming asks for a confirmation); the current state carries a check mark;
+- **New image…** opens a small form to choose the camera, which takes a new picture.
+
+With several systems, choose the system in the widget settings (a system, or one of its cameras); without a
+choice, the widget shows every system without the arming buttons.
+
+## Scene triggers
+
+- **Blink: motion detected**: a camera recorded a motion clip. Filter: a camera (empty: any). Variables: the
+  camera name and the system name.
+- **Blink: doorbell pressed**: someone pressed the button of a Video Doorbell. Filter: a doorbell (empty: any).
+
+Both arrive with the delay of the refresh interval plus the time Blink takes to upload the clip (often 10 to 30
+seconds). Blink only records when the system is armed and the detection of the camera is on.
+
+## Scene actions
+
+- **Blink: arm or disarm**: arms or disarms a system (choose the system or one of its cameras). Output: armed.
+- **Blink: camera motion detection**: turns the detection of one camera on or off. Output: detection on.
+- **Blink: take a new image**: wakes the camera for a new image (it costs battery), then publishes it on the camera
+  device. At most one per camera per minute. Output: image taken.
+
+## Scene examples
+
+- **Follow the Gladys alarm**: trigger "alarm armed" → **Blink: arm or disarm** (arm); trigger "alarm disarmed" →
+  disarm.
+- **Who is at the door?**: **Blink: doorbell pressed** → **Blink: take a new image** of the doorbell → the Gladys
+  action "send a camera image" to your phone.
+- **Garden light at night**: **Blink: motion detected** (garden camera) → condition "it is night" → turn the garden
+  light on.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"Blink sent you a verification code"**: type it with **Enter the code**. A code typed more than 15 minutes
+  later is refused: run **Sign in** to receive a new one.
+- **"e-mail or password refused by Blink"**: check them in the Blink app, then save the configuration again.
+- **"the Blink sign-in page changed"**: Blink changed its sign-in; an update of the integration is needed (open an
+  issue).
+- **No motion event**: the system must be armed and the detection of the camera on; the event comes at the next
+  reading.
+- **Detailed logs**: set `LOG_LEVEL=debug` on the integration. The logs never show the password, the tokens or the
+  codes.
+
+## Limits
+
+- Cloud only: without Internet, nothing works; Blink has no local API.
+- No live video and no clip download: only thumbnails.
+- No push from Blink to third parties: motion and the doorbell are seen at the next reading.
+- A doorbell press is recognized by the clip Blink records; when the doorbell records nothing on a press (setting
+  of the Blink app), it is not seen.
+- Blink does not publish its API: a change on their side can break the integration until it is updated.
+
+## Privacy and data
+
+The integration keeps under `/data` (readable by its owner only) the identifier of this client for Blink and the
+session tokens, never the password nor the e-mail address. The images stay between Blink, the integration and your
+Gladys.
